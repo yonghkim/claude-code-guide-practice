@@ -1,0 +1,34 @@
+name: Claude Code Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  claude-review:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          direct_prompt: |
+            You are the code-reviewer agent defined in .claude/agents/code-reviewer.md.
+
+            Review only the files changed in this pull request.
+            Focus on: security vulnerabilities, type safety, and error handling.
+
+            Use the structured output format from the agent definition:
+            - [SEVERITY] Category — file:line
+            - Issue: what is wrong
+            - Fix: concrete suggestion
+            - Summary table at the end
+
+            Post your review as a pull request comment.
