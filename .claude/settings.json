@@ -6,6 +6,12 @@
         "hooks": [
           {
             "type": "command",
+            "command": "python -c \"\nimport sys, json, re\ndata = json.load(sys.stdin)\ncmd = data.get('tool_input', {}).get('command', '')\ndangerous = [\n    (r'rm\\s+(-\\S*r\\S*f\\S*|-\\S*f\\S*r\\S*|--recursive\\s+--force|--force\\s+--recursive)', 'rm -rf: recursive force delete'),\n    (r'\\bDROP\\s+TABLE\\b', 'DROP TABLE: destructive SQL'),\n    (r'git\\s+push\\s+(--force|-f)(\\s|$)', 'git push --force: overwrites remote history'),\n]\nfor pattern, label in dangerous:\n    if re.search(pattern, cmd, re.IGNORECASE):\n        print(json.dumps({'continue': False, 'stopReason': f'Blocked dangerous command [{label}]: {cmd[:120]}'}))\n        sys.exit(1)\n\"",
+            "timeout": 10,
+            "statusMessage": "Checking for dangerous commands..."
+          },
+          {
+            "type": "command",
             "if": "Bash(git commit*)",
             "command": "ruff check . && mypy ex_pipeline.py test_pipeline.py && python -m pytest -q; EC=$?; if [ $EC -ne 0 ]; then printf '{\"continue\": false, \"stopReason\": \"Pre-commit checks failed. Fix ruff/mypy/pytest errors before committing.\"}'; exit 1; fi",
             "timeout": 60,
